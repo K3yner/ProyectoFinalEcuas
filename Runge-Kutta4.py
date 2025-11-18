@@ -124,6 +124,18 @@ class RungeKutta4:
         plt.show()
 
 
+# FUNCIÓN PARA RESOLVER CUALQUIER ECUACIÓN DE SEGUNDO ORDEN
+def resolver_segundo_orden(ecuacion: Callable, t0: float, 
+                          condiciones_iniciales: List[float], 
+                          h: float, n: int) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Resuelve una ecuación diferencial de segundo orden.
+    """
+    solver = RungeKutta4(ecuacion, t0, condiciones_iniciales, h, n)
+    return solver.solve()
+
+
+
 
 #Ecuación de primer orden ------------------------------------------------------------------------------------------------
 
