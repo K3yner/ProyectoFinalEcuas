@@ -125,7 +125,7 @@ def ejemplo_caida_friccion():
     """Ejemplo 1: Caída con fricción (ecuación de primer orden)"""
     # Parámetros
     g= 9.81
-    m = 0.5      # masa [kg]
+    m = 1      # masa [kg]
     k = 0.5     # coeficiente de fricción
     t0 = 0.0     # tiempo inicial
     v0 = [0]  # velocidad inicial [m/s] - como lista
