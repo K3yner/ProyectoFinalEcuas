@@ -5,32 +5,10 @@ import matplotlib.pyplot as plt
 class RungeKutta4:
     """
     Clase para resolver ecuaciones diferenciales usando el método de Runge-Kutta de orden 4.
-    
-    Esta clase puede resolver tanto ecuaciones diferenciales individuales como sistemas
-    de ecuaciones diferenciales.
-    
-    Atributos:
-        f (Callable): Función que define la ecuación diferencial o sistema
-        t0 (float): Valor inicial del tiempo
-        y0 (Union[float, List[float]]): Condición inicial o condiciones iniciales
-        h (float): Tamaño del paso
-        n (int): Número de pasos
     """
     
     def __init__(self, f: Callable, t0: float, y0: Union[float, List[float]], 
                  h: float, n: int):
-        """
-        Inicializa el solucionador de Runge-Kutta.
-        
-        Args:
-            f: Función que define la ecuación diferencial. Para sistemas, debe tomar
-               (t, y) donde y es un array y retornar un array de la misma dimensión.
-            t0: Valor inicial del tiempo
-            y0: Condición inicial. Puede ser un número para una ecuación o una lista
-                para sistemas.
-            h: Tamaño del paso
-            n: Número de pasos a calcular
-        """
         self.f = f
         self.t0 = t0
         self.y0 = np.array(y0, dtype=float)
@@ -38,18 +16,11 @@ class RungeKutta4:
         self.n = n
         
         # Verificar si es un sistema o una ecuación única
-        self.is_system = isinstance(y0, (list, np.ndarray)) and len(y0) > 1
+        self.is_system = isinstance(y0, (list, np.ndarray)) and len(self.y0) > 1
         
     def _rk4_step(self, t: float, y: np.ndarray) -> Tuple[float, np.ndarray]:
         """
         Realiza un paso del método de Runge-Kutta de orden 4.
-        
-        Args:
-            t: Tiempo actual
-            y: Valor actual de la solución
-            
-        Returns:
-            Tupla (nuevo_tiempo, nueva_solucion)
         """
         k1 = self.h * self.f(t, y)
         k2 = self.h * self.f(t + self.h/2, y + k1/2)
@@ -64,11 +35,6 @@ class RungeKutta4:
     def solve(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Resuelve la ecuación diferencial usando Runge-Kutta de orden 4.
-        
-        Returns:
-            Tupla (tiempos, soluciones) donde:
-                tiempos: Array con los valores de tiempo
-                soluciones: Array con las soluciones en cada tiempo
         """
         # Inicializar arrays para almacenar resultados
         tiempos = np.zeros(self.n + 1)
@@ -93,12 +59,6 @@ class RungeKutta4:
                      labels: List[str] = None, title: str = "Solución de la Ecuación Diferencial"):
         """
         Grafica la solución de la ecuación diferencial.
-        
-        Args:
-            tiempos: Array de tiempos
-            soluciones: Array de soluciones
-            labels: Lista de etiquetas para las curvas
-            title: Título del gráfico
         """
         plt.figure(figsize=(10, 6))
         
@@ -123,84 +83,165 @@ class RungeKutta4:
         plt.tight_layout()
         plt.show()
 
-
-# FUNCIÓN PARA RESOLVER CUALQUIER ECUACIÓN DE SEGUNDO ORDEN
-def resolver_segundo_orden(ecuacion: Callable, t0: float, 
-                          condiciones_iniciales: List[float], 
-                          h: float, n: int) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Resuelve una ecuación diferencial de segundo orden.
-    """
-    solver = RungeKutta4(ecuacion, t0, condiciones_iniciales, h, n)
-    return solver.solve()
-
-
-
-
-#Ecuación de primer orden ------------------------------------------------------------------------------------------------
-
-def CaidaFriccion(t:float, v:np.ndarray, k:float, m:float) -> np.ndarray:
-
+# CORRECCIÓN DEFINITIVA: Ecuación de primer orden
+def CaidaFriccion(t: float, v: np.ndarray, k: float, m: float, g:float) -> np.ndarray:
     """ 
-    Ecuación:
-        dv/dt = (k/m) * v
-
-        m = masa del cuerpo
-        k = 
-        v = velocidad
+    Ecuación: dv/dt = -(k/m) * v +g 
     """
+    # v es un array numpy, necesitamos extraer el valor escalar
+    v_valor = v[0]  # Extraer el primer elemento del array
+    return np.array([-(k/m) * v_valor+g])  # Devolver como array de 1 elemento
 
-    return np.array([(k/m)*v])
-
-#Ecuación de segundo orden --------------------------------------------------------------------------------------------
-def circuito_rlc_serie(t: float, y: np.ndarray, R: float, L: float, C:float) -> np.ndarray:
+# CORRECCIÓN DEFINITIVA: Ecuación de segundo orden
+def circuito_rlc_serie(t: float, y: np.ndarray, R: float, L: float, C: float) -> np.ndarray:
     """
-    Circuito RLC serie sin fuente: L*d²i/dt² + R*di/dt + (1/C)*i = 0
-    
-    Convertido a sistema:
-        y[0] = i (corriente)
-        y[1] = di/dt (derivada de la corriente)
-        
-    Ecuaciones:
-        di/dt = y[1]
-        d²i/dt² = (-R*y[1] - (1/C)*y[0]) / L
+    Circuito RLC serie sin fuente
     """
-    # Parámetros del circuito - puedes modificar estos valores
-    #R Resistencia [Ω] - AMORTIGUAMIENTO CRÍTICO: R = 2√(L/C) ≈ 14.14Ω
-    #L Inductancia [H]
-    #C Capacitancia [F]
-    
-    # Sistema de ecuaciones (sin término de fuente)
+    # y es un array numpy [i, di/dt]
     di_dt = y[1]  # di/dt = v
     dv_dt = (-R * y[1] - (1/C) * y[0]) / L  # d²i/dt²
     
     return np.array([di_dt, dv_dt])
 
-
-#Sistema 2x2 de ecuaciones ------------------------------------------------------------------------------------------------------
-
-def ResortesAcoplados(t: float, y: np.ndarray, m1:float, m2:float, k1:float, k2:float)-> np.ndarray:
+# CORRECCIÓN DEFINITIVA: Sistema de ecuaciones
+def ResortesAcoplados(t: float, y: np.ndarray, m1: float, m2: float, k1: float, k2: float) -> np.ndarray:
     """
-    Sistema 2x2 de ecuaciones diferenciales acopladas
-    y = [x1, v1, x2, v2]
-    
-    Ecuaciones:
-        dx1/dt = v1
-        dv1/dt = (-k1*x1 + k2*(x2 - x1)) / m1
-        dx2/dt = v2  
-        dv2/dt = (-k2*(x2 - x1)) / m2
+    Sistema de resortes acoplados
     """
-    # Parámetros
-    #m1, m2 = masas
-    #k1, k2 = constantes de resorte
-    
-    # Extraer variables
+    # y es un array numpy [x1, v1, x2, v2]
     x1, v1, x2, v2 = y
     
-    # Definir las 4 ecuaciones
-    dx1_dt = v1  # dx1/dt = v1
-    dv1_dt = (-k1*x1 + k2*(x2 - x1)) / m1  # dv1/dt = aceleración masa 1
-    dx2_dt = v2  # dx2/dt = v2
-    dv2_dt = (-k2*(x2 - x1)) / m2  # dv2/dt = aceleración masa 2
+    # Ecuaciones
+    dx1_dt = v1
+    dv1_dt = (-k1 * x1 + k2 * (x2 - x1)) / m1
+    dx2_dt = v2
+    dv2_dt = (-k2 * (x2 - x1)) / m2
     
     return np.array([dx1_dt, dv1_dt, dx2_dt, dv2_dt])
+
+# EJEMPLOS CORREGIDOS
+
+def ejemplo_caida_friccion():
+    """Ejemplo 1: Caída con fricción (ecuación de primer orden)"""
+    # Parámetros
+    g= 9.81
+    m = 0.5      # masa [kg]
+    k = 0.5     # coeficiente de fricción
+    t0 = 0.0     # tiempo inicial
+    v0 = [0]  # velocidad inicial [m/s] - como lista
+    h = 0.1      # paso de tiempo
+    n = 50       # número de pasos
+    
+    # Definir la ecuación usando lambda para fijar parámetros
+    def ecuacion_caida(t, v):
+        return CaidaFriccion(t, v, k, m, g)
+    
+    # Resolver
+    solver = RungeKutta4(ecuacion_caida, t0, v0, h, n)
+    tiempos, soluciones = solver.solve()
+    
+    # Graficar
+    solver.plot_solution(tiempos, soluciones, 
+                        labels=['Velocidad [m/s]'],
+                        title='Caída con Fricción: Velocidad vs Tiempo')
+    
+    return tiempos, soluciones
+
+def ejemplo_circuito_rlc():
+    """Ejemplo 2: Circuito RLC (ecuación de segundo orden)"""
+    # Parámetros del circuito
+    R = 2.0      # Resistencia [Ω] - SUBAMORTIGUADO
+    L = 1.0      # Inductancia [H]
+    C = 0.1      # Capacitancia [F]
+    
+    # Condiciones iniciales: [corriente, derivada de corriente]
+    condiciones_iniciales = [1.0, 0.0]
+    t0 = 0.0
+    h = 0.01
+    n = 500
+    
+    # Definir la ecuación
+    def ecuacion_rlc(t, y):
+        return circuito_rlc_serie(t, y, R, L, C)
+    
+    # Resolver
+    solver = RungeKutta4(ecuacion_rlc, t0, condiciones_iniciales, h, n)
+    tiempos, soluciones = solver.solve()
+    
+    # Graficar
+    solver.plot_solution(tiempos, soluciones,
+                        labels=['Corriente i(t) [A]', 'di/dt [A/s]'],
+                        title=f'Circuito RLC (R={R}Ω, L={L}H, C={C}F)')
+    
+    return tiempos, soluciones
+
+def ejemplo_resortes_acoplados():
+    """Ejemplo 3: Resortes acoplados (sistema de ecuaciones)"""
+    # Parámetros
+    m1, m2 = 1.0, 1.5    # masas [kg]
+    k1, k2 = 2.0, 1.0    # constantes de resorte [N/m]
+    
+    # Condiciones iniciales: [x1, v1, x2, v2]
+    condiciones_iniciales = [0.5, 0.0, 0.0, 0.0]
+    t0 = 0.0
+    h = 0.05
+    n = 400
+    
+    # Definir el sistema
+    def sistema_resortes(t, y):
+        return ResortesAcoplados(t, y, m1, m2, k1, k2)
+    
+    # Resolver
+    solver = RungeKutta4(sistema_resortes, t0, condiciones_iniciales, h, n)
+    tiempos, soluciones = solver.solve()
+    
+    # Graficar
+    plt.figure(figsize=(12, 8))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(tiempos, soluciones[:, 0], 'b-', label='Masa 1', linewidth=2)
+    plt.plot(tiempos, soluciones[:, 2], 'r-', label='Masa 2', linewidth=2)
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Posición [m]')
+    plt.title('Posiciones vs Tiempo')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 2)
+    plt.plot(soluciones[:, 0], soluciones[:, 1], 'b-', linewidth=1)
+    plt.xlabel('Posición masa 1 [m]')
+    plt.ylabel('Velocidad masa 1 [m/s]')
+    plt.title('Espacio de Fase - Masa 1')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 3)
+    plt.plot(soluciones[:, 2], soluciones[:, 3], 'r-', linewidth=1)
+    plt.xlabel('Posición masa 2 [m]')
+    plt.ylabel('Velocidad masa 2 [m/s]')
+    plt.title('Espacio de Fase - Masa 2')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 4)
+    plt.plot(soluciones[:, 0], soluciones[:, 2], 'g-', linewidth=1)
+    plt.xlabel('Posición masa 1 [m]')
+    plt.ylabel('Posición masa 2 [m]')
+    plt.title('Trayectoria en el Espacio de Configuración')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    return tiempos, soluciones
+
+# Ejecutar todos los ejemplos
+if __name__ == "__main__":
+    print("Ejemplo 1: Caída con fricción")
+    tiempos_caida, velocidades = ejemplo_caida_friccion()
+    
+    print("\nEjemplo 2: Circuito RLC")
+    tiempos_rlc, estados_rlc = ejemplo_circuito_rlc()
+    
+    print("\nEjemplo 3: Resortes acoplados")
+    tiempos_resortes, estados_resortes = ejemplo_resortes_acoplados()
+    
+    print("¡Todos los ejemplos ejecutados correctamente!")
