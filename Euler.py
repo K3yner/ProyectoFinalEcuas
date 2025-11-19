@@ -374,6 +374,9 @@ def ejemplo_caida_libre():
     # Extraer posición y velocidad
     posicion = sol[:, 0]
     velocidad = sol[:, 1]
+
+    #solución analítica
+    y_ex= 19.6*(1-np.exp(-0.5*t))
     
     # Graficar
     plt.figure(figsize=(12, 8))
@@ -386,7 +389,8 @@ def ejemplo_caida_libre():
     # plt.grid(True, alpha=0.3)
     
     # plt.subplot(2, 2, 2)
-    plt.plot(t, velocidad, 'r-', linewidth=2)
+    plt.plot(t, velocidad, 'r-',label="Aproximación por Euler", linewidth=2)
+    plt.plot(t,y_ex, "b--", label = "analítica", linewidth=2)
     plt.xlabel('Tiempo (s)')
     plt.ylabel('Velocidad (m/s)')
     plt.title('Velocidad vs Tiempo')
@@ -446,6 +450,9 @@ def ejemplo_circuito_rlc():
     carga = sol[:, 0]
     corriente = sol[:, 1]
     voltaje_capacitor = carga / C
+
+    #Solución analítica
+    y_ex= np.exp(-t)*(np.cos(3*t)+np.sin(3*t))
     
     # Graficar
     plt.figure(figsize=(12, 8))
@@ -457,15 +464,17 @@ def ejemplo_circuito_rlc():
     # plt.title('Voltaje en el Capacitor')
     # plt.grid(True, alpha=0.3)
     
-    plt.subplot(2, 1, 1)
-    plt.plot(t, corriente, 'r-', linewidth=2)
-    plt.xlabel('Tiempo (s)')
-    plt.ylabel('Corriente (A)')
-    plt.title('Corriente en el Circuito')
-    plt.grid(True, alpha=0.3)
+    # plt.subplot(2, 1, 1)
+    # plt.plot(t, corriente, 'r-', linewidth=2)
+    # plt.plot(t,y_ex, "b--", label = "analítica", linewidth=2)
+    # plt.xlabel('Tiempo (s)')
+    # plt.ylabel('Corriente (A)')
+    # plt.title('Corriente en el Circuito')
+    # plt.grid(True, alpha=0.3)
     
-    plt.subplot(2, 1, 2)
-    plt.plot(t, carga, 'g-', linewidth=2)
+    # plt.subplot(2, 1, 2)
+    plt.plot(t, carga, 'g-',label="aproximación por Euler", linewidth=2)
+    plt.plot(t,y_ex, "b--", label = "analítica", linewidth=2)
     plt.xlabel('Tiempo (s)')
     plt.ylabel('Carga (C)')
     plt.title('Carga del Capacitor')
@@ -477,7 +486,7 @@ def ejemplo_circuito_rlc():
     # plt.ylabel('Corriente (A)')
     # plt.title('Diagrama de Fase: I vs Vc')
     # plt.grid(True, alpha=0.3)
-    
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
@@ -507,16 +516,29 @@ def ejemplo_resortes_acoplados():
     v1 = sol[:, 1]
     x2 = sol[:, 2]
     v2 = sol[:, 3]
+
+    #Solución analítica
+    y1_ex= (-np.sqrt(2)/10)*np.sin(np.sqrt(2)*t)+(np.sqrt(3)/5)*np.sin(2*np.sqrt(3)*t)
+    y2_ex= (-np.sqrt(2)/5)*np.sin(np.sqrt(2)*t)-(np.sqrt(3)/10)*np.sin(2*np.sqrt(3)*t)
     
     # Graficar
     plt.figure(figsize=(12, 6))
     
-    # plt.subplot(3, 1, 1)
+    plt.subplot(2, 1, 1)
     plt.plot(t, x1, 'b-', linewidth=2, label='Masa 1')
-    plt.plot(t, x2, 'r-', linewidth=2, label='Masa 2')
+    plt.plot(t,y1_ex, label= "analítica", linewidth=2)
     plt.xlabel('Tiempo (s)')
     plt.ylabel('Posición (m)')
-    plt.title('Posiciones de las Masas')
+    plt.title('Posición masa 1')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 1, 2)
+    plt.plot(t,y2_ex, label= "analítica", linewidth=2)
+    plt.plot(t, x2, 'r-', linewidth=2, label='aproximación por euler')
+    plt.xlabel('Tiempo (s)')
+    plt.ylabel('Posición (m)')
+    plt.title('Posición masa 2')
     plt.legend()
     plt.grid(True, alpha=0.3)
     
@@ -536,6 +558,7 @@ def ejemplo_resortes_acoplados():
     # plt.title('Diagrama de Fase: x1 vs x2')
     # plt.grid(True, alpha=0.3)
     
+    plt.legend()
     plt.tight_layout()
     plt.show()
     
