@@ -214,116 +214,339 @@ class EulerSolver:
         plt.show()
 
 
-# Funciones de ejemplo para demostrar el uso
-def ejemplo_primer_orden():
+#ED de primer orden ---------------------------------------------------------------------------------------
+
+def caida_libre_con_friccion(masa: float = 1.0, 
+                            gravedad: float = 9.81, 
+                            coeficiente_friccion: float = 0.1) -> Callable[[float, np.ndarray], np.ndarray]:
     """
-    Ejemplo: Resuelve dy/dt = -2y, y(0) = 1
-    Solución exacta: y(t) = e^(-2t)
+    Define el sistema de ecuaciones para caída libre con fricción del aire.
+    
+    Sistema basado en:
+    dv/dt = (k/m) * v
+    
+    Considerando que la fricción se opone al movimiento:
+    dy/dt = v
+    dv/dt = g - (k/m) * v
+    
+    Parameters:
+    -----------
+    masa : float
+        Masa del objeto (kg)
+    gravedad : float
+        Aceleración gravitacional (m/s²)
+    coeficiente_friccion : float
+        Coeficiente de fricción (kg/s)
+        
+    Returns:
+    --------
+    Callable: Función del sistema para usar con solve_system
+        
+    Uso de condiciones iniciales:
+    ----------------------------
+    Las condiciones iniciales deben ser un array numpy con 2 elementos en este orden:
+    y0 = [y_0, v_0]
+    
+    donde:
+    - y_0: altura inicial del objeto (m)
+    - v_0: velocidad inicial del objeto (m/s)
     """
-    print("=== Ejemplo: Ecuación de primer orden ===")
+    def sistema(t, y):
+        pos, vel = y
+        dpos_dt = vel
+        dvel_dt = gravedad - (coeficiente_friccion / masa) * vel
+        return np.array([dpos_dt, dvel_dt])
     
-    def f(t, y):
-        return -2 * y
-    
-    solver = EulerSolver()
-    t, y = solver.solve_first_order(f, y0=1, t_span=(0, 5), n_steps=1000)
-    
-    # Solución exacta para comparación
-    y_exacta = np.exp(-2 * t)
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(t, y, label='Euler (numérica)', linewidth=2)
-    plt.plot(t, y_exacta, 'r--', label='Exacta', linewidth=1.5)
-    plt.xlabel('Tiempo')
-    plt.ylabel('y(t)')
-    plt.title('Solución: dy/dt = -2y, y(0) = 1')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-    
-    error = np.abs(y - y_exacta).max()
-    print(f"Error máximo: {error:.6f}")
+    return sistema
 
 
-def ejemplo_segundo_orden():
+#ED de segundo orden ---------------------------------------------------------------------------------------
+
+def circuito_rlc_serie(R: float , 
+                      L: float , 
+                      C: float,
+                      V0: Callable = None) -> Callable[[float, np.ndarray], np.ndarray]:
     """
-    Ejemplo: Resuelve d²y/dt² + 4y = 0, y(0)=1, y'(0)=0
-    Solución exacta: y(t) = cos(2t)
+    Define el sistema de ecuaciones para un circuito RLC en serie.
+    
+    Sistema para carga del capacitor:
+    dq/dt = i
+    di/dt = (V(t) - R*i - q/C) / L
+    
+    Parameters:
+    -----------
+    R : float
+        R (Ohms)
+    L : float
+        L (Henries)
+    C : float
+        C (Farads)
+    V0 : Callable
+        Función V(t) que describe el voltaje de la fuente
+        
+    Returns:
+    --------
+    Callable: Función del sistema para usar con solve_system
     """
-    print("\n=== Ejemplo: Ecuación de segundo orden ===")
+    if V0 is None:
+        # Por defecto, fuente de DC
+        V0 = lambda t: 1.0 if t >= 0 else 0.0
     
-    def f(t, y, v):
-        return -4 * y  # d²y/dt² = -4y
+    def sistema(t, y):
+        q, i = y  # q: carga del capacitor, i: corriente
+        dq_dt = i
+        di_dt = (V0(t) - R * i - q / C) / L
+        return np.array([dq_dt, di_dt])
     
+    return sistema
+
+#Sistema 2x2 de ED de primer orden ---------------------------------------------------------------------------------------
+
+def resortes_acoplados(m1: float = 1.0, 
+                      m2: float = 1.0, 
+                      k1: float = 10.0, 
+                      k2: float = 10.0) -> Callable[[float, np.ndarray], np.ndarray]:
+    """
+    Define el sistema de ecuaciones para dos resortes acoplados.
+    
+    Sistema basado en:
+    m₁x₁'' = -k₁x₁ + k₂(x₂ - x₁)
+    m₂x₂'' = -k₂(x₂ - x₁)
+    
+    Convertido a sistema de primer orden:
+    dx₁/dt = v₁
+    dv₁/dt = (-k₁x₁ + k₂(x₂ - x₁)) / m₁
+    dx₂/dt = v₂
+    dv₂/dt = (-k₂(x₂ - x₁)) / m₂
+    
+    Parameters:
+    -----------
+    m1, m2 : float
+        Masas de los dos objetos
+    k1, k2 : float
+        Constantes de los resortes
+
+    Uso de condiciones iniciales:
+    ----------------------------
+    Las condiciones iniciales deben ser un array numpy con 4 elementos en este orden:
+    y0 = [x1_0, v1_0, x2_0, v2_0]
+        
+    Returns:
+    --------
+    Callable: Función del sistema para usar con solve_system
+    """
+    def sistema(t, y):
+        x1, v1, x2, v2 = y
+        dx1_dt = v1
+        dv1_dt = (-k1 * x1 + k2 * (x2 - x1)) / m1
+        dx2_dt = v2
+        dv2_dt = (-k2 * (x2 - x1)) / m2
+        return np.array([dx1_dt, dv1_dt, dx2_dt, dv2_dt])
+    
+    return sistema
+
+
+
+
+
+#Ejemplos con valores concretos---------------------------------------------------
+def ejemplo_caida_libre():
+    """
+    Ejemplo: Caída libre con fricción del aire usando dv/dt = g - (k/m)v
+    """
+    print("\n=== Ejemplo: Caída libre con fricción ===")
+    
+    # Parámetros del sistema
+    masa = 1.0           # kg
+    gravedad = 9.81      # m/s²
+    coeficiente_friccion = 0.5  # kg/s
+    
+    # Condiciones iniciales: [posición, velocidad]
+    y0 = np.array([100.0, 0.0])  # Desde 100m de altura, en reposo
+    
+    # Crear el sistema
+    sistema = caida_libre_con_friccion(masa, gravedad, coeficiente_friccion)
+    
+    # Resolver
     solver = EulerSolver()
-    t, y, v = solver.solve_second_order(f, y0=1, v0=0, t_span=(0, 10), n_steps=2000)
+    t, sol = solver.solve_system(sistema, y0, t_span=(0, 25), n_steps=2000)
     
-    # Solución exacta para comparación
-    y_exacta = np.cos(2 * t)
-    v_exacta = -2 * np.sin(2 * t)
+    # Extraer posición y velocidad
+    posicion = sol[:, 0]
+    velocidad = sol[:, 1]
     
+    # Graficar
     plt.figure(figsize=(12, 8))
     
-    plt.subplot(2, 1, 1)
-    plt.plot(t, y, label='Euler (posición)', linewidth=2)
-    plt.plot(t, y_exacta, 'r--', label='Exacta (posición)', linewidth=1.5)
-    plt.ylabel('Posición')
-    plt.title('Oscilador armónico: d²y/dt² + 4y = 0')
+    # plt.subplot(2, 2, 1)
+    # plt.plot(t, posicion, 'b-', linewidth=2)
+    # plt.xlabel('Tiempo (s)')
+    # plt.ylabel('Altura (m)')
+    # plt.title('Altura vs Tiempo')
+    # plt.grid(True, alpha=0.3)
+    
+    # plt.subplot(2, 2, 2)
+    plt.plot(t, velocidad, 'r-', linewidth=2)
+    plt.xlabel('Tiempo (s)')
+    plt.ylabel('Velocidad (m/s)')
+    plt.title('Velocidad vs Tiempo')
+    plt.grid(True, alpha=0.3)
+    
+    # plt.subplot(2, 2, 3)
+    # plt.plot(t, velocidad, 'g-', linewidth=2)
+    # plt.xlabel('Tiempo (s)')
+    # plt.ylabel('Velocidad (m/s)')
+    # plt.title('Velocidad Terminal')
+    # plt.grid(True, alpha=0.3)
+    
+    # Calcular velocidad terminal teórica
+    v_terminal = (masa * gravedad) / coeficiente_friccion
+    plt.axhline(y=v_terminal, color='k', linestyle='--', 
+                label=f'Vel. terminal = {v_terminal:.2f} m/s')
     plt.legend()
+    
+    # plt.subplot(2, 2, 4)
+    # plt.plot(posicion, velocidad, 'purple', linewidth=2)
+    # plt.xlabel('Altura (m)')
+    # plt.ylabel('Velocidad (m/s)')
+    # plt.title('Diagrama de Fase: Velocidad vs Altura')
+    # plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"Velocidad terminal teórica: {v_terminal:.2f} m/s")
+    print(f"Velocidad final numérica: {velocidad[-1]:.2f} m/s")
+    print(f"Tiempo hasta llegar al suelo: {t[np.where(posicion <= 0)[0][0]]:.2f} s" if any(posicion <= 0) else "Objeto no ha llegado al suelo")
+
+def ejemplo_circuito_rlc():
+    """
+    Ejemplo: Circuito RLC en serie subamortiguado.
+    """
+    print("\n=== Ejemplo: Circuito RLC en serie ===")
+    
+    # Parámetros del circuito (valores para oscilación subamortiguada)
+    R = 2.0      # Ohms (baja resistencia para oscilaciones)
+    L = 1.0      # Henries
+    C = 0.1     # Farads
+    
+    # Condiciones iniciales: [carga del capacitor, corriente]
+    y0 = np.array([1.0, 0.0])  # Capacitor descargado, sin corriente inicial
+    
+    # Crear sistema con fuente de DC de 1V que se enciende en t=0
+    
+    
+    sistema = circuito_rlc_serie(R, L, C, None)
+    
+    # Resolver
+    solver = EulerSolver()
+    t, sol = solver.solve_system(sistema, y0, t_span=(0, 5), n_steps=4000)
+    
+    # Extraer carga y corriente
+    carga = sol[:, 0]
+    corriente = sol[:, 1]
+    voltaje_capacitor = carga / C
+    
+    # Graficar
+    plt.figure(figsize=(12, 8))
+    
+    # plt.subplot(2, 2, 1)
+    # plt.plot(t, voltaje_capacitor, 'b-', linewidth=2)
+    # plt.xlabel('Tiempo (s)')
+    # plt.ylabel('Voltaje en capacitor (V)')
+    # plt.title('Voltaje en el Capacitor')
+    # plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 1, 1)
+    plt.plot(t, corriente, 'r-', linewidth=2)
+    plt.xlabel('Tiempo (s)')
+    plt.ylabel('Corriente (A)')
+    plt.title('Corriente en el Circuito')
     plt.grid(True, alpha=0.3)
     
     plt.subplot(2, 1, 2)
-    plt.plot(t, v, label='Euler (velocidad)', linewidth=2)
-    plt.plot(t, v_exacta, 'r--', label='Exacta (velocidad)', linewidth=1.5)
-    plt.xlabel('Tiempo')
-    plt.ylabel('Velocidad')
-    plt.legend()
+    plt.plot(t, carga, 'g-', linewidth=2)
+    plt.xlabel('Tiempo (s)')
+    plt.ylabel('Carga (C)')
+    plt.title('Carga del Capacitor')
     plt.grid(True, alpha=0.3)
+    
+    # plt.subplot(2, 2, 4)
+    # plt.plot(voltaje_capacitor, corriente, 'purple', linewidth=1.5)
+    # plt.xlabel('Voltaje en capacitor (V)')
+    # plt.ylabel('Corriente (A)')
+    # plt.title('Diagrama de Fase: I vs Vc')
+    # plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.show()
 
-
-def ejemplo_sistema():
+def ejemplo_resortes_acoplados():
     """
-    Ejemplo: Sistema de Lotka-Volterra (depredador-presa)
-    dx/dt = αx - βxy
-    dy/dt = δxy - γy
+    Ejemplo: Sistema de dos resortes acoplados.
     """
-    print("\n=== Ejemplo: Sistema de ecuaciones ===")
+    print("\n=== Ejemplo: Resortes Acoplados ===")
     
-    def lotka_volterra(t, y):
-        x, y_pred = y
-        alpha, beta, delta, gamma = 1.0, 0.1, 0.075, 1.5
-        dxdt = alpha * x - beta * x * y_pred
-        dydt = delta * x * y_pred - gamma * y_pred
-        return np.array([dxdt, dydt])
+    # Parámetros del sistema
+    m1, m2 = 1.0, 1.0           # Masas iguales
+    k1, k2 = 10.0, 4.0         # Resortes iguales
     
+    # Condiciones iniciales: [x1, v1, x2, v2]
+    # Masa 1 desplazada, masa 2 en reposo
+    y0 = np.array([0.0, 1.0, 0.0, -1.0])
+    
+    # Crear sistema
+    sistema = resortes_acoplados(m1, m2, k1, k2)
+    
+    # Resolver
     solver = EulerSolver()
-    t, sol = solver.solve_system(lotka_volterra, 
-                                y0=np.array([20, 5]), 
-                                t_span=(0, 50), 
-                                n_steps=5000)
+    t, sol = solver.solve_system(sistema, y0, t_span=(0, 20), n_steps=4000)
     
-    plt.figure(figsize=(12, 8))
+    # Extraer posiciones y velocidades
+    x1 = sol[:, 0]
+    v1 = sol[:, 1]
+    x2 = sol[:, 2]
+    v2 = sol[:, 3]
     
-    plt.subplot(2, 1, 1)
-    plt.plot(t, sol[:, 0], label='Presas (x)', linewidth=2)
-    plt.plot(t, sol[:, 1], label='Depredadores (y)', linewidth=2)
-    plt.ylabel('Población')
-    plt.title('Modelo Lotka-Volterra')
+    # Graficar
+    plt.figure(figsize=(12, 6))
+    
+    # plt.subplot(3, 1, 1)
+    plt.plot(t, x1, 'b-', linewidth=2, label='Masa 1')
+    plt.plot(t, x2, 'r-', linewidth=2, label='Masa 2')
+    plt.xlabel('Tiempo (s)')
+    plt.ylabel('Posición (m)')
+    plt.title('Posiciones de las Masas')
     plt.legend()
     plt.grid(True, alpha=0.3)
     
-    plt.subplot(2, 1, 2)
-    plt.plot(sol[:, 0], sol[:, 1], 'b-', linewidth=1.5)
-    plt.xlabel('Presas')
-    plt.ylabel('Depredadores')
-    plt.title('Diagrama de fase')
-    plt.grid(True, alpha=0.3)
+    # plt.subplot(3, 1, 2)
+    # plt.plot(t, v1, 'b--', linewidth=2, label='Velocidad 1')
+    # plt.plot(t, v2, 'r--', linewidth=2, label='Velocidad 2')
+    # plt.xlabel('Tiempo (s)')
+    # plt.ylabel('Velocidad (m/s)')
+    # plt.title('Velocidades de las Masas')
+    # plt.legend()
+    # plt.grid(True, alpha=0.3)
+    
+    # plt.subplot(3, 1, 3)
+    # plt.plot(x1, x2, 'purple', linewidth=1.5)
+    # plt.xlabel('Posición Masa 1 (m)')
+    # plt.ylabel('Posición Masa 2 (m)')
+    # plt.title('Diagrama de Fase: x1 vs x2')
+    # plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.show()
+    
+    # Calcular modos normales teóricos
+    # Para el sistema: m₁ = m₂ = m, k₁ = k₂ = k
+    # Modo 1: ω₁ = √(k/m) - masas se mueven en fase
+    # Modo 2: ω₂ = √(3k/m) - masas se mueven en oposición
+    omega1 = np.sqrt(k1 / m1)
+    omega2 = np.sqrt(3 * k1 / m1)  # Para k₁ = k₂
+    print(f"Frecuencia modo normal 1 (en fase): {omega1:.2f} rad/s")
+    print(f"Frecuencia modo normal 2 (oposición): {omega2:.2f} rad/s")
 
 
 def main():
@@ -331,11 +554,10 @@ def main():
     print("Solver de Ecuaciones Diferenciales usando Método de Euler")
     print("=" * 60)
     
-    # Ejecutar ejemplos
-    ejemplo_primer_orden()
-    ejemplo_segundo_orden()
-    ejemplo_sistema()
-
+    # Ejecutar ejemplos de los nuevos sistemas
+    ejemplo_caida_libre()
+    ejemplo_circuito_rlc()
+    ejemplo_resortes_acoplados()
 
 if __name__ == "__main__":
     main()

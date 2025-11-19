@@ -186,7 +186,7 @@ def ejemplo_circuito_rlc():
 def ejemplo_resortes_acoplados():
     """Ejemplo 3: Resortes acoplados (sistema de ecuaciones)"""
     # Parámetros
-    m1, m2 = 1.0, 1.    # masas [kg]
+    m1, m2 = 1.0, 1.0    # masas [kg]
     k1, k2 = 10.0, 4.0    # constantes de resorte [N/m]
     
     # Condiciones iniciales: [x1, v1, x2, v2]
