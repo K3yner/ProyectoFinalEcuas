@@ -624,6 +624,72 @@ def ejemplo_resortes_acoplados():
     print(f"Frecuencia modo normal 1 (en fase): {omega1:.2f} rad/s")
     print(f"Frecuencia modo normal 2 (oposición): {omega2:.2f} rad/s")
 
+def ejemplo_brusselator():
+    """
+    Ejemplo: Sistema de reacción química Brusselator.
+    """
+    print("\n=== Ejemplo: Reacción Química Brusselator ===")
+    
+    # Parámetros de concentración de reactivos
+    A = 1.0  # Concentración del reactivo A
+    B = 3.0  # Concentración del reactivo B
+    
+    # Condiciones iniciales: [x0, y0] - concentraciones iniciales de intermediarios
+    y0 = np.array([1.5, 2.5])
+    
+    # Crear el sistema
+    sistema = reaccion_quimica_brusselator(A, B)
+    
+    # Resolver
+    solver = EulerSolver()
+    t, sol = solver.solve_system(sistema, y0, t_span=(0, 20), n_steps=4000)
+    
+    # Extraer concentraciones
+    x_conc = sol[:, 0]  # Concentración de X
+    y_conc = sol[:, 1]  # Concentración de Y
+    
+    # Graficar
+    plt.figure(figsize=(12, 8))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(t, x_conc, 'b-', linewidth=2, label='Concentración X')
+    plt.plot(t, y_conc, 'r-', linewidth=2, label='Concentración Y')
+    plt.xlabel('Tiempo')
+    plt.ylabel('Concentración')
+    plt.title('Evolución Temporal de Concentraciones')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 2)
+    plt.plot(x_conc, y_conc, 'purple', linewidth=1.5)
+    plt.xlabel('Concentración X')
+    plt.ylabel('Concentración Y')
+    plt.title('Diagrama de Fase: Y vs X')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 3)
+    plt.plot(t, x_conc, 'b-', linewidth=2)
+    plt.xlabel('Tiempo')
+    plt.ylabel('Concentración X')
+    plt.title('Evolución de X')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 4)
+    plt.plot(t, y_conc, 'r-', linewidth=2)
+    plt.xlabel('Tiempo')
+    plt.ylabel('Concentración Y')
+    plt.title('Evolución de Y')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Calcular punto fijo teórico
+    x_fijo = A
+    y_fijo = B / A
+    print(f"Parámetros: A = {A}, B = {B}")
+    print(f"Punto fijo teórico: x = {x_fijo}, y = {y_fijo}")
+    print(f"Concentraciones finales: x = {x_conc[-1]:.4f}, y = {y_conc[-1]:.4f}")
 
 def main():
     """Función principal que ejecuta todos los ejemplos."""
@@ -634,6 +700,7 @@ def main():
     ejemplo_caida_libre()
     ejemplo_circuito_rlc()
     ejemplo_resortes_acoplados()
+    ejemplo_brusselator()
 
 if __name__ == "__main__":
     main()
