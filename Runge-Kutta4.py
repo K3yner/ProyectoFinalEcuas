@@ -199,6 +199,34 @@ def ResortesAcoplados(t: float, y: np.ndarray, m1: float, m2: float, k1: float, 
     
     return np.array([dx1_dt, dv1_dt, dx2_dt, dv2_dt])
 
+def brusselator(t: float, y: np.ndarray, A: float = 1.0, B: float = 3.0) -> np.ndarray:
+    """
+    Sistema Brusselator - Modelo de reacciones químicas oscilantes.
+    
+    Ecuaciones:
+        dx/dt = A + x²y - (B + 1)x
+        dy/dt = Bx - x²y
+    
+    Args:
+        t: Tiempo (no aparece explícitamente en las ecuaciones)
+        y: Array [x, y] donde:
+           y[0] = x(t) = concentración del intermedio X
+           y[1] = y(t) = concentración del intermedio Y
+        A: Concentración del reactivo A (constante positiva)
+        B: Concentración del reactivo B (constante positiva)
+    
+    Returns:
+        Array [dx/dt, dy/dt] con las derivadas
+    """
+    x, y_val = y
+    
+    # Ecuaciones del Brusselator
+    dx_dt = A + (x**2) * y_val - (B + 1) * x
+    dy_dt = B * x - (x**2) * y_val
+    
+    return np.array([dx_dt, dy_dt])
+
+
 # EJEMPLOS CORREGIDOS
 
 def ejemplo_caida_friccion():
@@ -315,6 +343,104 @@ def ejemplo_resortes_acoplados():
     
     return tiempos, soluciones
 
+def ejemplo_brusselator():
+    """
+    Ejemplo completo del sistema Brusselator con diferentes parámetros.
+    """
+    print("=== SISTEMA BRUSSELATOR - REACCIONES QUÍMICAS OSCILANTES ===")
+    
+    # Parámetros para diferentes comportamientos
+    parametros = [
+        (1.0, 2.0, "Oscilaciones estables", "blue"),
+        (1.0, 3.0, "Oscilaciones sostenidas", "red"),
+        (1.0, 4.0, "Oscilaciones amplificadas", "green"),
+        (0.5, 1.5, "Comportamiento amortiguado", "purple")
+    ]
+    
+    plt.figure(figsize=(15, 10))
+    
+    for i, (A, B, nombre, color) in enumerate(parametros):
+        # Configurar la función con parámetros específicos
+        def brusselator_con_parametros(t, y, A=A, B=B):
+            return brusselator(t, y, A, B)
+        
+        # Resolver el sistema
+        tiempos, soluciones = RungeKutta4(
+            brusselator_con_parametros,
+            t0=0.0,
+            y0=[1.0, 1.0],  # Concentraciones iniciales [x(0), y(0)]
+            h=0.01,
+            n=5000
+        ).solve()
+        
+        x_vals = soluciones[:, 0]  # Concentración de X
+        y_vals = soluciones[:, 1]  # Concentración de Y
+        
+        # Gráfico 1: Concentraciones vs tiempo
+        plt.subplot(2, 2, 1)
+        plt.plot(tiempos, x_vals, color=color, linewidth=1.5, 
+                label=f'A={A}, B={B}', alpha=0.8)
+        plt.xlabel('Tiempo')
+        plt.ylabel('Concentración X(t)')
+        plt.title('Evolución temporal - Concentración X')
+        plt.grid(True, alpha=0.3)
+        
+        plt.subplot(2, 2, 2)
+        plt.plot(tiempos, y_vals, color=color, linewidth=1.5, 
+                label=f'A={A}, B={B}', alpha=0.8)
+        plt.xlabel('Tiempo')
+        plt.ylabel('Concentración Y(t)')
+        plt.title('Evolución temporal - Concentración Y')
+        plt.grid(True, alpha=0.3)
+        
+        # Gráfico 3: Espacio de fases
+        plt.subplot(2, 2, 3)
+        plt.plot(x_vals, y_vals, color=color, linewidth=1.0, 
+                label=f'A={A}, B={B}')
+        plt.xlabel('Concentración X')
+        plt.ylabel('Concentración Y')
+        plt.title('Espacio de Fases')
+        plt.grid(True, alpha=0.3)
+        
+        # Información del comportamiento
+        print(f"\nParámetros: A={A}, B={B}")
+        print(f"  Concentración X final: {x_vals[-1]:.4f}")
+        print(f"  Concentración Y final: {y_vals[-1]:.4f}")
+        print(f"  Comportamiento: {nombre}")
+    
+    # Añadir leyendas
+    plt.subplot(2, 2, 1)
+    plt.legend(fontsize=8)
+    plt.subplot(2, 2, 2)
+    plt.legend(fontsize=8)
+    plt.subplot(2, 2, 3)
+    plt.legend(fontsize=8)
+    
+    # Gráfico 4: Ejemplo detallado de oscilaciones
+    plt.subplot(2, 2, 4)
+    A_det, B_det = 1.0, 3.0
+    def brusselator_detallado(t, y):
+        return brusselator(t, y, A_det, B_det)
+    
+    tiempos_det, soluciones_det = RungeKutta4(
+        brusselator_detallado,
+        t0=0.0,
+        y0=[0.5, 2.0],
+        h=0.01,
+        n=8000
+    ).solve()
+    
+    plt.plot(tiempos_det, soluciones_det[:, 0], 'b-', linewidth=2, label='X(t)')
+    plt.plot(tiempos_det, soluciones_det[:, 1], 'r-', linewidth=2, label='Y(t)')
+    plt.xlabel('Tiempo')
+    plt.ylabel('Concentración')
+    plt.title(f'Oscilaciones Brusselator (A={A_det}, B={B_det})')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
 # Ejecutar todos los ejemplos
 if __name__ == "__main__":
     print("Ejemplo 1: Caída con fricción")
@@ -325,5 +451,8 @@ if __name__ == "__main__":
     
     print("\nEjemplo 3: Resortes acoplados")
     tiempos_resortes, estados_resortes = ejemplo_resortes_acoplados()
+
+    print("\nEjemplo 4: sistema sin solución analítica")
+    tiempos, estados = ejemplo_brusselator()
     
     print("¡Todos los ejemplos ejecutados correctamente!")
