@@ -271,8 +271,9 @@ def ejemplo_circuito_rlc():
     # Condiciones iniciales: [carga q, corriente i = dq/dt]
     condiciones_iniciales = [1.0, 0.0]  # q(0) = 1 C, i(0) = 0 A
     t0 = 0.0
-    h = 0.01
-    n = 500
+    tf= 10.0
+    n = 10000
+    h = (tf-t0)/n
     
     # Definir la ecuación
     def ecuacion_rlc(t, y):
@@ -302,8 +303,9 @@ def ejemplo_resortes_acoplados():
     # Condiciones iniciales: [x1, v1, x2, v2]
     condiciones_iniciales = [0.0, 1.0, 0.0, -1.0]
     t0 = 0.0
-    h = 0.05
-    n = 400
+    tf= 1.0
+    n = 50000
+    h = (tf-t0)/n
     
     # Definir el sistema
     def sistema_resortes(t, y):
@@ -452,7 +454,7 @@ if __name__ == "__main__":
     print("\nEjemplo 3: Resortes acoplados")
     tiempos_resortes, estados_resortes = ejemplo_resortes_acoplados()
 
-    print("\nEjemplo 4: sistema sin solución analítica")
-    tiempos, estados = ejemplo_brusselator()
+    #print("\nEjemplo 4: sistema sin solución analítica")
+    #tiempos, estados = ejemplo_brusselator()
     
     print("¡Todos los ejemplos ejecutados correctamente!")
