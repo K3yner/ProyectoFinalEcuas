@@ -346,6 +346,59 @@ def resortes_acoplados(m1: float = 1.0,
     return sistema
 
 
+#Sistema sin solución analítica -------------------------------
+def reaccion_quimica_brusselator(A: float = 1.0, 
+                                B: float = 3.0) -> Callable[[float, np.ndarray], np.ndarray]:
+    """
+    Define el sistema de ecuaciones para la reacción del Brusselator.
+    
+    Sistema basado en:
+    dx/dt = A + x²y - (B + 1)x
+    dy/dt = Bx - x²y
+    
+    donde:
+    - x(t): Concentración del intermedio químico X
+    - y(t): Concentración del intermedio químico Y
+    - A, B: Concentraciones de reactivos iniciales (constantes positivas)
+    
+    Parameters:
+    -----------
+    A : float
+        Concentración del reactivo A (constante positiva)
+    B : float
+        Concentración del reactivo B (constante positiva)
+        
+    Returns:
+    --------
+    Callable: Función del sistema para usar con solve_system
+        
+    Uso de condiciones iniciales:
+    ----------------------------
+    Las condiciones iniciales deben ser un array numpy con 2 elementos en este orden:
+    y0 = [x0, y0]
+    
+    donde:
+    - x0: concentración inicial del intermedio X
+    - y0: concentración inicial del intermedio Y
+    
+    Ejemplos:
+    ---------
+    # Concentraciones iniciales pequeñas
+    y0 = [0.5, 0.5]
+    
+    # Concentraciones iniciales diferentes
+    y0 = [1.0, 2.0]
+    
+    # Condiciones cercanas al punto fijo
+    y0 = [A, B/A]  # Punto fijo teórico
+    """
+    def sistema(t, y):
+        x, y_chem = y  # y_chem para evitar conflicto con el parámetro y
+        dx_dt = A + (x ** 2) * y_chem - (B + 1) * x
+        dy_dt = B * x - (x ** 2) * y_chem
+        return np.array([dx_dt, dy_dt])
+    
+    return sistema
 
 
 
