@@ -95,13 +95,21 @@ def CaidaFriccion(t: float, v: np.ndarray, k: float, m: float, g:float) -> np.nd
 # CORRECCIÓN DEFINITIVA: Ecuación de segundo orden
 def circuito_rlc_serie(t: float, y: np.ndarray, R: float, L: float, C: float) -> np.ndarray:
     """
-    Circuito RLC serie sin fuente
-    """
-    # y es un array numpy [i, di/dt]
-    di_dt = y[1]  # di/dt = v
-    dv_dt = (-R * y[1] - (1/C) * y[0]) / L  # d²i/dt²
+    Circuito RLC serie sin fuente: L*d²q/dt² + R*dq/dt + (1/C)*q = 0
     
-    return np.array([di_dt, dv_dt])
+    Convertido a sistema:
+        y[0] = q (carga)
+        y[1] = dq/dt = i (corriente)
+        
+    Ecuaciones:
+        dq/dt = y[1]
+        d²q/dt² = (-R*y[1] - (1/C)*y[0]) / L
+    """
+    # Sistema de ecuaciones
+    dq_dt = y[1]  # dq/dt = i (corriente)
+    di_dt = (-R * y[1] - (1/C) * y[0]) / L  # d²q/dt²
+    
+    return np.array([dq_dt, di_dt])
 
 # CORRECCIÓN DEFINITIVA: Sistema de ecuaciones
 def ResortesAcoplados(t: float, y: np.ndarray, m1: float, m2: float, k1: float, k2: float) -> np.ndarray:
@@ -148,14 +156,14 @@ def ejemplo_caida_friccion():
     return tiempos, soluciones
 
 def ejemplo_circuito_rlc():
-    """Ejemplo 2: Circuito RLC (ecuación de segundo orden)"""
+    """Ejemplo: Circuito RLC en serie (con carga q)"""
     # Parámetros del circuito
-    R = 2.0      # Resistencia [Ω] - SUBAMORTIGUADO
+    R = 2.0      # Resistencia [Ω]
     L = 1.0      # Inductancia [H]
     C = 0.1      # Capacitancia [F]
     
-    # Condiciones iniciales: [corriente, derivada de corriente]
-    condiciones_iniciales = [1.0, 0.0]
+    # Condiciones iniciales: [carga q, corriente i = dq/dt]
+    condiciones_iniciales = [1.0, 0.0]  # q(0) = 1 C, i(0) = 0 A
     t0 = 0.0
     h = 0.01
     n = 500
@@ -170,19 +178,19 @@ def ejemplo_circuito_rlc():
     
     # Graficar
     solver.plot_solution(tiempos, soluciones,
-                        labels=['Corriente i(t) [A]', 'di/dt [A/s]'],
-                        title=f'Circuito RLC (R={R}Ω, L={L}H, C={C}F)')
+                        labels=['Carga q(t) [C]', 'Corriente i(t) [A]'],
+                        title=f'Circuito RLC Serie (R={R}Ω, L={L}H, C={C}F)')
     
     return tiempos, soluciones
 
 def ejemplo_resortes_acoplados():
     """Ejemplo 3: Resortes acoplados (sistema de ecuaciones)"""
     # Parámetros
-    m1, m2 = 1.0, 1.5    # masas [kg]
-    k1, k2 = 2.0, 1.0    # constantes de resorte [N/m]
+    m1, m2 = 1.0, 1.    # masas [kg]
+    k1, k2 = 10.0, 4.0    # constantes de resorte [N/m]
     
     # Condiciones iniciales: [x1, v1, x2, v2]
-    condiciones_iniciales = [0.5, 0.0, 0.0, 0.0]
+    condiciones_iniciales = [0.0, 1.0, 0.0, -1.0]
     t0 = 0.0
     h = 0.05
     n = 400
