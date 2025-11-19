@@ -56,32 +56,104 @@ class RungeKutta4:
         return tiempos, soluciones
     
     def plot_solution(self, tiempos: np.ndarray, soluciones: np.ndarray, 
-                     labels: List[str] = None, title: str = "Solución de la Ecuación Diferencial"):
+                     labels: List[str] = None, 
+                     title: str = "Solución de la Ecuación Diferencial",
+                     analitica: Callable = None):
         """
         Grafica la solución de la ecuación diferencial.
+        
+        Args:
+            tiempos: Array de tiempos
+            soluciones: Array de soluciones
+            labels: Lista de etiquetas para cada variable
+            title: Título del gráfico
+            analitica: Función que devuelve la solución analítica (opcional)
         """
-        plt.figure(figsize=(10, 6))
-        
-        if self.is_system:
-            # Para sistemas, graficar cada variable por separado
-            if labels is None:
-                labels = [f'$y_{i}$' for i in range(soluciones.shape[1])]
+        if self.is_system and soluciones.shape[1] >= 2:
+            # Para sistemas con 2 o más variables, crear subgráficas
+            n_vars = soluciones.shape[1]
+            fig, axes = plt.subplots(n_vars, 1, figsize=(10, 4*n_vars))
             
-            for i in range(soluciones.shape[1]):
-                plt.plot(tiempos, soluciones[:, i], label=labels[i], linewidth=2)
-        else:
-            # Para una sola ecuación
+            if n_vars == 1:
+                axes = [axes]
+            
             if labels is None:
-                labels = ['y(t)']
-            plt.plot(tiempos, soluciones, label=labels[0], linewidth=2)
-        
-        plt.xlabel('Tiempo (t)')
-        plt.ylabel('Solución y(t)')
-        plt.title(title)
-        plt.grid(True, alpha=0.3)
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
+                labels = [f'$y_{i}$' for i in range(n_vars)]
+            
+            for i in range(n_vars):
+                # Graficar solución numérica
+                axes[i].plot(tiempos, soluciones[:, i], 'b-', 
+                           label='Aproximación por Runge-Kutta', linewidth=2)
+                
+                # Graficar solución analítica si está disponible
+                if analitica is not None:
+                    y_analitica = analitica(tiempos)
+                    if isinstance(y_analitica, (list, np.ndarray)) and len(y_analitica.shape) > 1:
+                        # Si la solución analítica es un array multidimensional
+                        axes[i].plot(tiempos, y_analitica[:, i], 'r--', 
+                                   label='Solución analítica', linewidth=2, alpha=0.8)
+                    else:
+                        # Si es un array unidimensional
+                        axes[i].plot(tiempos, y_analitica, 'r--', 
+                                   label='Solución analítica', linewidth=2, alpha=0.8)
+                
+                axes[i].set_xlabel('Tiempo (t)')
+                axes[i].set_ylabel(labels[i])
+                axes[i].set_title(f'{title} - {labels[i]}')
+                axes[i].grid(True, alpha=0.3)
+                axes[i].legend()
+            
+            plt.tight_layout()
+            plt.show()
+            
+        else:
+            # Para una sola ecuación o sistemas pequeños en una sola gráfica
+            plt.figure(figsize=(10, 6))
+            
+            if self.is_system:
+                # Para sistemas, graficar cada variable por separado
+                if labels is None:
+                    labels = [f'$y_{i}$' for i in range(soluciones.shape[1])]
+                
+                for i in range(soluciones.shape[1]):
+                    # Graficar solución numérica
+                    plt.plot(tiempos, soluciones[:, i], 
+                           label=f'{labels[i]} - Aproximación por Runge-Kutta', 
+                           linewidth=2)
+                    
+                    # Graficar solución analítica si está disponible
+                    if analitica is not None:
+                        y_analitica = analitica(tiempos)
+                        if isinstance(y_analitica, (list, np.ndarray)) and len(y_analitica.shape) > 1:
+                            plt.plot(tiempos, y_analitica[:, i], '--', 
+                                   label=f'{labels[i]} - Solución analítica', 
+                                   linewidth=2, alpha=0.8)
+                        else:
+                            plt.plot(tiempos, y_analitica, '--', 
+                                   label=f'{labels[i]} - Solución analítica', 
+                                   linewidth=2, alpha=0.8)
+            else:
+                # Para una sola ecuación
+                if labels is None:
+                    labels = ['y(t)']
+                
+                # Graficar solución numérica
+                plt.plot(tiempos, soluciones, 'b-', 
+                       label='Aproximación por Runge-Kutta', linewidth=2)
+                
+                # Graficar solución analítica si está disponible
+                if analitica is not None:
+                    y_analitica = analitica(tiempos)
+                    plt.plot(tiempos, y_analitica, 'r--', 
+                           label='Solución analítica', linewidth=2, alpha=0.8)
+            
+            plt.xlabel('Tiempo (t)')
+            plt.ylabel('Solución y(t)')
+            plt.title(title)
+            plt.grid(True, alpha=0.3)
+            plt.legend()
+            plt.tight_layout()
+            plt.show()
 
 # CORRECCIÓN DEFINITIVA: Ecuación de primer orden
 def CaidaFriccion(t: float, v: np.ndarray, k: float, m: float, g:float) -> np.ndarray:
@@ -144,6 +216,11 @@ def ejemplo_caida_friccion():
     def ecuacion_caida(t, v):
         return CaidaFriccion(t, v, k, m, g)
     
+    # Solución analítica para caída con fricción
+    def solucion_analitica_caida(t):
+        v_terminal = g * m / k  # velocidad terminal
+        return v_terminal * (1 - np.exp(-k/m * t))
+    
     # Resolver
     solver = RungeKutta4(ecuacion_caida, t0, v0, h, n)
     tiempos, soluciones = solver.solve()
@@ -151,7 +228,8 @@ def ejemplo_caida_friccion():
     # Graficar
     solver.plot_solution(tiempos, soluciones, 
                         labels=['Velocidad [m/s]'],
-                        title='Caída con Fricción: Velocidad vs Tiempo')
+                        title='Caída con Fricción: Velocidad vs Tiempo',
+                        analitica=solucion_analitica_caida)
     
     return tiempos, soluciones
 
@@ -175,11 +253,15 @@ def ejemplo_circuito_rlc():
     # Resolver
     solver = RungeKutta4(ecuacion_rlc, t0, condiciones_iniciales, h, n)
     tiempos, soluciones = solver.solve()
+
+    def solAnalitica(t):
+        return np.exp(-t)*(np.cos(3*t)+np.sin(3*t))
     
     # Graficar
     solver.plot_solution(tiempos, soluciones,
                         labels=['Carga q(t) [C]', 'Corriente i(t) [A]'],
-                        title=f'Circuito RLC Serie (R={R}Ω, L={L}H, C={C}F)')
+                        title=f'Circuito RLC Serie (R={R}Ω, L={L}H, C={C}F)',
+                        analitica = solAnalitica)
     
     return tiempos, soluciones
 
@@ -203,38 +285,30 @@ def ejemplo_resortes_acoplados():
     solver = RungeKutta4(sistema_resortes, t0, condiciones_iniciales, h, n)
     tiempos, soluciones = solver.solve()
     
-    # Graficar
-    plt.figure(figsize=(12, 8))
+    # Soluciones analíticas
+    y1_ex = (-np.sqrt(2)/10)*np.sin(np.sqrt(2)*tiempos) + (np.sqrt(3)/5)*np.sin(2*np.sqrt(3)*tiempos)
+    y2_ex = (-np.sqrt(2)/5)*np.sin(np.sqrt(2)*tiempos) - (np.sqrt(3)/10)*np.sin(2*np.sqrt(3)*tiempos)
+
+    # Graficar en 2 subgráficas
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     
-    # plt.subplot(2, 2, 1)
-    plt.plot(tiempos, soluciones[:, 0], 'b-', label='Masa 1', linewidth=2)
-    plt.plot(tiempos, soluciones[:, 2], 'r-', label='Masa 2', linewidth=2)
-    plt.xlabel('Tiempo [s]')
-    plt.ylabel('Posición [m]')
-    plt.title('Posiciones vs Tiempo')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    # Gráfica para Masa 1
+    ax1.plot(tiempos, soluciones[:, 0], 'b-', label='Aproximación por Runge-Kutta', linewidth=2)
+    ax1.plot(tiempos, y1_ex, 'r--', label='Solución analítica', linewidth=2, alpha=0.8)
+    ax1.set_xlabel('Tiempo [s]')
+    ax1.set_ylabel('Posición [m]')
+    ax1.set_title('Masa 1 - Posición vs Tiempo')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
     
-    # plt.subplot(2, 2, 2)
-    # plt.plot(soluciones[:, 0], soluciones[:, 1], 'b-', linewidth=1)
-    # plt.xlabel('Posición masa 1 [m]')
-    # plt.ylabel('Velocidad masa 1 [m/s]')
-    # plt.title('Espacio de Fase - Masa 1')
-    # plt.grid(True, alpha=0.3)
-    
-    # plt.subplot(2, 2, 3)
-    # plt.plot(soluciones[:, 2], soluciones[:, 3], 'r-', linewidth=1)
-    # plt.xlabel('Posición masa 2 [m]')
-    # plt.ylabel('Velocidad masa 2 [m/s]')
-    # plt.title('Espacio de Fase - Masa 2')
-    # plt.grid(True, alpha=0.3)
-    
-    # plt.subplot(2, 2, 4)
-    # plt.plot(soluciones[:, 0], soluciones[:, 2], 'g-', linewidth=1)
-    # plt.xlabel('Posición masa 1 [m]')
-    # plt.ylabel('Posición masa 2 [m]')
-    # plt.title('Trayectoria en el Espacio de Configuración')
-    # plt.grid(True, alpha=0.3)
+    # Gráfica para Masa 2
+    ax2.plot(tiempos, soluciones[:, 2], 'b-', label='Aproximación por Runge-Kutta', linewidth=2)
+    ax2.plot(tiempos, y2_ex, 'r--', label='Solución analítica', linewidth=2, alpha=0.8)
+    ax2.set_xlabel('Tiempo [s]')
+    ax2.set_ylabel('Posición [m]')
+    ax2.set_title('Masa 2 - Posición vs Tiempo')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.show()
